@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verificador - GAMMA Computación</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="page">
+    <section class="card" id="decoder-app">
+      <h1>Verificador de Códigos</h1>
+      <p class="helper">Ingresa el código del estudiante para ver sus resultados.</p>
+      
+      <div class="options">
+        <input type="number" id="code-input" class="decoder-input" placeholder="Ingresa el código aquí">
+        <button class="primary" id="verify-btn">Verificar Código</button>
+      </div>
+
+      <div id="result-area" class="result-area">
+        <div class="result-box">
+          <h2 class="result-title">Resultados</h2>
+          <p class="result-score">Calificación: <strong id="score-display">-</strong></p>
+          <p>Intentos totales: <strong id="attempts-display">-</strong></p>
+        </div>
+      </div>
+      
+      <small><a href="index.html" class="back-link">Volver a la actividad</a></small>
+    </section>
+  </main>
+  <script src="decoder.js"></script>
+</body>
+</html>
