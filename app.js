@@ -173,7 +173,7 @@ function renderIntro() {
     <div class="options">
       <button class="primary" id="start-btn">Comenzar</button>
     </div>
-    <small>Recuerda: escribe tus respuestas en la hoja antes de elegirlas aquí.</small>
+    <small>Usa tu hoja si necesitas hacer notas.</small>
   `;
 
   document.getElementById("start-btn").addEventListener("click", () => {
@@ -189,7 +189,6 @@ function renderQuestion() {
   let html = `
     <div class="step-label">Pregunta ${state.currentQuestion + 1} de ${questions.length}</div>
     <h1>${question.prompt}</h1>
-    <p class="helper">Completa la actividad en tu hoja y aquí.</p>
   `;
 
   // Render body based on type
