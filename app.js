@@ -29,7 +29,9 @@ const questions = [
       { text: "https://banco.com", category: "safe" },
       { text: "www.g0ogle.com", category: "unsafe" },
       { text: "http://mi-blog.com", category: "less-safe" },
-      { text: "http://juegos-gratis.net", category: "less-safe" }
+      { text: "http://juegos-gratis.net", category: "less-safe" },
+      { text: "https://escuela.edu", category: "safe" },
+      { text: "http://premio-gratis.site", category: "unsafe" }
     ]
   },
   // 3. Hardware (Rope Match)
@@ -42,6 +44,46 @@ const questions = [
       { left: "Mouse", right: "Mover" },
       { left: "Pantalla", right: "Ver" }
     ]
+  },
+  // 3.1 Hardware Functions & Limitations
+  {
+    id: "hw-func-1",
+    type: "choice",
+    prompt: "¿Qué usas para hacer clic en cosas en la pantalla?",
+    options: ["El Teclado", "El Mouse", "La Pantalla"],
+    correctIndex: 1,
+  },
+  {
+    id: "hw-limit-1",
+    type: "stamper",
+    prompt: "Decide si es Verdad o Falso:",
+    statement: "La pantalla puede escuchar tus secretos.",
+    options: ["Verdad", "Falso"],
+    correctIndex: 1,
+  },
+  {
+    id: "hw-limit-2",
+    type: "stamper",
+    prompt: "Decide si es Verdad o Falso:",
+    statement: "El mouse sabe lo que estás pensando.",
+    options: ["Verdad", "Falso"],
+    correctIndex: 1,
+  },
+  {
+    id: "hw-limit-3",
+    type: "stamper",
+    prompt: "Decide si es Verdad o Falso:",
+    statement: "La computadora necesita electricidad para funcionar.",
+    options: ["Verdad", "Falso"],
+    correctIndex: 0,
+  },
+  {
+    id: "hw-limit-4",
+    type: "stamper",
+    prompt: "Decide si es Verdad o Falso:",
+    statement: "Puedes descargar más memoria RAM gratis en internet.",
+    options: ["Verdad", "Falso"],
+    correctIndex: 1,
   },
   // 4. Binary (Switches)
   {
@@ -68,12 +110,25 @@ const questions = [
     prompt: "Forma el número 7 (1 1 1)",
     target: [1, 1, 1]
   },
+  {
+    id: "bin-switch-5",
+    type: "binary",
+    prompt: "Forma el número 1 (0 0 1)",
+    target: [0, 0, 1]
+  },
+  {
+    id: "bin-switch-6",
+    type: "binary",
+    prompt: "Forma el número 4 (1 0 0)",
+    target: [1, 0, 0]
+  },
   // 5. Scratch
   {
     id: "scratch-1",
-    type: "choice",
-    prompt: "¿Para qué sirve el bloque 'Mover 10 pasos' en Scratch?",
-    options: ["Para mover al personaje", "Para reproducir un sonido", "Para cambiar el fondo"],
+    type: "scratch",
+    prompt: "Encuentra la pieza que explica el bloque:",
+    blockText: "Mover 10 pasos",
+    options: ["Mueve al personaje", "Hace un sonido", "Cambia el fondo"],
     correctIndex: 0,
   },
   // 6. Typing Test
@@ -83,7 +138,13 @@ const questions = [
     prompt: "Escribe las palabras que aparecen (30 segundos)",
     words: ["gato", "perro", "casa", "sol", "luna", "agua", "flor", "rojo", "azul", "mesa", "silla", "libro", "papel", "lapiz", "juego", "amigo", "feliz", "comer", "saltar", "correr"]
   },
-  // 7. GAMMA
+  // 7. Circuit Game (Moved)
+  {
+    id: "circuit-intro",
+    type: "circuit",
+    prompt: "Conecta los bloques para activar el sistema y escapar.",
+  },
+  // 8. GAMMA
   {
     id: "gamma-best",
     type: "choice",
@@ -116,6 +177,7 @@ function renderIntro() {
   `;
 
   document.getElementById("start-btn").addEventListener("click", () => {
+    document.documentElement.requestFullscreen().catch(e => console.log(e));
     renderQuestion();
   });
 }
@@ -141,6 +203,12 @@ function renderQuestion() {
     html += renderRopeBody(question);
   } else if (question.type === "typing") {
     html += renderTypingBody(question);
+  } else if (question.type === "stamper") {
+    html += renderStamperBody(question);
+  } else if (question.type === "scratch") {
+    html += renderScratchBody(question);
+  } else if (question.type === "circuit") {
+    html += renderCircuitBody(question);
   }
 
   // Feedback area
@@ -159,6 +227,12 @@ function renderQuestion() {
     attachRopeListeners(question);
   } else if (question.type === "typing") {
     attachTypingListeners(question);
+  } else if (question.type === "stamper") {
+    attachStamperListeners(question);
+  } else if (question.type === "scratch") {
+    attachScratchListeners(question);
+  } else if (question.type === "circuit") {
+    attachCircuitListeners(question);
   }
 }
 
@@ -246,10 +320,10 @@ function renderSortBody(question) {
   return `
     <div class="sort-container">
       <div class="drop-zone safe" data-type="safe">
-        <div class="zone-label">Muy Seguro (HTTPS)</div>
+        <div class="zone-label">Muy Seguro</div>
       </div>
       <div class="drop-zone less-safe" data-type="less-safe">
-        <div class="zone-label">Poco Seguro (HTTP)</div>
+        <div class="zone-label">Poco Seguro</div>
       </div>
       <div class="drop-zone unsafe" data-type="unsafe">
         <div class="zone-label">Nada Seguro (Fake)</div>
@@ -489,7 +563,7 @@ function attachTypingListeners(question) {
     handleAnswer(question, `WPM: ${wpm}, Acc: ${accuracy}%`, true);
   }
 
-  input.addEventListener('input', (e) => {
+  input.addEventListener('focus', (e) => {
     if (!started) {
       started = true;
       updateWord();
@@ -498,12 +572,27 @@ function attachTypingListeners(question) {
         timeLeft--;
         timerBar.style.width = `${(timeLeft / 30) * 100}%`;
         
+        // Color logic based on elapsed time (30s total)
+        // 0-12s (1/5, 2/5): Green
+        // 12-24s (3/5, 4/5): Yellow
+        // 24-30s (5/5): Red
+        const elapsed = 30 - timeLeft;
+        if (elapsed <= 12) {
+             timerBar.style.backgroundColor = '#4caf50';
+        } else if (elapsed <= 24) {
+             timerBar.style.backgroundColor = '#ffeb3b';
+        } else {
+             timerBar.style.backgroundColor = '#f44336';
+        }
+        
         if (timeLeft <= 0) {
           endGame();
         }
       }, 1000);
     }
+  });
 
+  input.addEventListener('input', (e) => {
     const currentWord = words[currentWordIndex];
     const val = input.value.trim();
     
@@ -514,12 +603,6 @@ function attachTypingListeners(question) {
       currentWordIndex++;
       input.value = '';
       updateWord();
-    } else {
-      // Simple accuracy tracking on keypress could be more complex, 
-      // but here we just track total chars typed vs correct words length at end?
-      // Let's track total chars based on input length changes? 
-      // Actually, let's just count total chars as length of words attempted + errors.
-      // For simplicity in this "game", let's just count total chars as what they typed.
     }
   });
   
@@ -529,6 +612,359 @@ function attachTypingListeners(question) {
       totalChars++;
     }
   });
+}
+
+// --- STAMPER LOGIC ---
+function renderStamperBody(question) {
+  return `
+    <div class="stamper-container">
+      <div class="paper-doc" id="paper-doc">
+        ${question.statement}
+        <div class="stamp-mark" id="stamp-mark"></div>
+      </div>
+      <div class="stamp-controls">
+        <button class="stamp-btn true" data-index="0">VERDAD</button>
+        <button class="stamp-btn false" data-index="1">FALSO</button>
+      </div>
+    </div>
+  `;
+}
+
+function attachStamperListeners(question) {
+  const btns = document.querySelectorAll('.stamp-btn');
+  const mark = document.getElementById('stamp-mark');
+  
+  btns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const idx = Number(e.currentTarget.dataset.index);
+      const text = idx === 0 ? "VERDAD" : "FALSO";
+      const type = idx === 0 ? "true" : "false";
+      
+      // Visual stamp
+      mark.textContent = text;
+      mark.className = `stamp-mark visible ${type}`;
+      
+      // Logic
+      const isCorrect = idx === question.correctIndex;
+      handleAnswer(question, text, isCorrect);
+    });
+  });
+}
+
+// --- SCRATCH LOGIC ---
+function renderScratchBody(question) {
+  return `
+    <div class="scratch-container">
+      <div class="scratch-block">
+        ${question.blockText}
+      </div>
+      <div class="scratch-options">
+        ${question.options.map((opt, i) => `
+          <div class="scratch-option" data-index="${i}">${opt}</div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function attachScratchListeners(question) {
+  const opts = document.querySelectorAll('.scratch-option');
+  
+  opts.forEach(opt => {
+    opt.addEventListener('click', (e) => {
+      const idx = Number(e.currentTarget.dataset.index);
+      const isCorrect = idx === question.correctIndex;
+      
+      // Visual feedback
+      if (isCorrect) {
+        e.currentTarget.classList.add('correct');
+      } else {
+        e.currentTarget.classList.add('incorrect');
+      }
+      
+      handleAnswer(question, question.options[idx], isCorrect);
+    });
+  });
+}
+
+// --- CIRCUIT GAME LOGIC ---
+function renderCircuitBody(question) {
+  return `
+    <div class="circuit-container">
+      <div class="circuit-game-area">
+        <canvas id="circuit-canvas" width="600" height="400"></canvas>
+        <div id="circuit-overlay" class="circuit-overlay">
+            <div style="text-align: center;">
+                <h2>NIVEL 1: RECOLECCIÓN DE DATOS</h2>
+                <p>Presiona ESPACIO para comenzar</p>
+            </div>
+        </div>
+      </div>
+      <p>Instrucciones: Usa las flechas para moverte. Recolecta el <strong>DATO</strong> para abrir la puerta.</p>
+    </div>
+  `;
+}
+
+
+
+function attachCircuitListeners(question) {
+  const overlay = document.getElementById("circuit-overlay");
+  const canvas = document.getElementById("circuit-canvas");
+  const ctx = canvas.getContext("2d");
+
+  let gameActive = false;
+  let gameWon = false;
+  let currentLevel = 0;
+
+  // Level Definitions
+  const levels = [
+    {
+      // Level 1: Simple Jump
+      platforms: [
+        { x: 0, y: 380, w: 600, h: 20, type: "solid" }, // Floor
+        { x: 100, y: 300, w: 100, h: 20, type: "solid" },
+        { x: 300, y: 220, w: 100, h: 20, type: "solid" },
+        { x: 500, y: 150, w: 100, h: 20, type: "solid" }
+      ],
+      item: { x: 530, y: 110, w: 20, h: 20, collected: false, label: "0" },
+      door: { x: 50, y: 320, w: 40, h: 60, open: false },
+      playerStart: { x: 20, y: 340 }
+    },
+    {
+      // Level 2: Lava Pits
+      platforms: [
+        { x: 0, y: 380, w: 100, h: 20, type: "solid" },
+        { x: 100, y: 380, w: 400, h: 20, type: "lava" },
+        { x: 500, y: 380, w: 100, h: 20, type: "solid" },
+        { x: 150, y: 300, w: 80, h: 20, type: "solid" },
+        { x: 300, y: 220, w: 80, h: 20, type: "solid" },
+        { x: 450, y: 140, w: 80, h: 20, type: "solid" }
+      ],
+      item: { x: 480, y: 100, w: 20, h: 20, collected: false, label: "1" },
+      door: { x: 520, y: 320, w: 40, h: 60, open: false },
+      playerStart: { x: 20, y: 340 }
+    },
+    {
+      // Level 3: The Climb
+      platforms: [
+        { x: 0, y: 380, w: 600, h: 20, type: "lava" },
+        { x: 0, y: 300, w: 100, h: 20, type: "solid" },
+        { x: 200, y: 250, w: 80, h: 20, type: "solid" },
+        { x: 400, y: 200, w: 80, h: 20, type: "solid" },
+        { x: 200, y: 150, w: 80, h: 20, type: "solid" },
+        { x: 50, y: 100, w: 100, h: 20, type: "solid" },
+        { x: 480, y: 200, w: 80, h: 20, type: "solid" } // Door platform
+      ],
+      item: { x: 80, y: 60, w: 20, h: 20, collected: false, label: "BYTE" },
+      door: { x: 500, y: 140, w: 40, h: 60, open: false },
+      playerStart: { x: 20, y: 260 }
+    }
+  ];
+
+  let currentMap = levels[currentLevel];
+
+  // Game State
+  const player = { x: 0, y: 0, w: 20, h: 20, vx: 0, vy: 0, speed: 3, jump: -12, grounded: false };
+  const gravity = 0.4;
+  const friction = 0.8;
+  
+  function resetPlayer() {
+    player.x = currentMap.playerStart.x;
+    player.y = currentMap.playerStart.y;
+    player.vx = 0;
+    player.vy = 0;
+  }
+  
+  resetPlayer();
+
+  const keys = {};
+
+  const keyHandler = (e) => {
+    if (!document.getElementById("circuit-canvas")) {
+      window.removeEventListener("keydown", keyHandler);
+      window.removeEventListener("keyup", keyUpHandler);
+      return;
+    }
+    
+    if (e.code === "Space" && !gameActive && !gameWon) {
+        gameActive = true;
+        overlay.classList.add("hidden");
+        window.focus();
+        return;
+    }
+
+    if (e.type === "keydown") {
+        if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight", "Space"].indexOf(e.code) > -1) {
+            e.preventDefault();
+        }
+        keys[e.code] = true;
+    } else {
+        keys[e.code] = false;
+    }
+  };
+  
+  const keyUpHandler = (e) => keyHandler(e);
+
+  window.addEventListener("keydown", keyHandler);
+  window.addEventListener("keyup", keyUpHandler);
+
+  function update() {
+    if (!gameActive || gameWon) return;
+
+    // Movement
+    if (keys["ArrowLeft"]) player.vx -= 1;
+    if (keys["ArrowRight"]) player.vx += 1;
+    if (keys["ArrowUp"] && player.grounded) {
+      player.vy = player.jump;
+      player.grounded = false;
+    }
+
+    player.vx *= friction;
+    player.vy += gravity;
+
+    player.x += player.vx;
+    player.y += player.vy;
+
+    // Collision with platforms
+    player.grounded = false;
+    currentMap.platforms.forEach(p => {
+      const dir = colCheck(player, p);
+      if (dir) {
+        if (p.type === "lava") {
+          resetPlayer();
+        } else if (dir === "b") {
+          player.grounded = true;
+        }
+      }
+    });
+
+    // Boundaries
+    if (player.x < 0) player.x = 0;
+    if (player.x + player.w > canvas.width) player.x = canvas.width - player.w;
+    if (player.y + player.h > canvas.height) { // Fall off reset
+        resetPlayer();
+    }
+    
+    // Item Collection
+    if (!currentMap.item.collected) {
+        if (
+            player.x < currentMap.item.x + currentMap.item.w &&
+            player.x + player.w > currentMap.item.x &&
+            player.y < currentMap.item.y + currentMap.item.h &&
+            player.y + player.h > currentMap.item.y
+        ) {
+            currentMap.item.collected = true;
+            currentMap.door.open = true;
+        }
+    }
+
+    // Door Interaction
+    if (currentMap.door.open) {
+        if (
+          player.x < currentMap.door.x + currentMap.door.w &&
+          player.x + player.w > currentMap.door.x &&
+          player.y < currentMap.door.y + currentMap.door.h &&
+          player.y + player.h > currentMap.door.y
+        ) {
+          // Level Complete
+          if (currentLevel < levels.length - 1) {
+              currentLevel++;
+              currentMap = levels[currentLevel];
+              resetPlayer();
+              gameActive = false;
+              overlay.classList.remove("hidden");
+              overlay.innerHTML = `
+                <div style="text-align: center;">
+                    <h2>NIVEL ${currentLevel + 1}</h2>
+                    <p>Presiona ESPACIO para continuar</p>
+                </div>
+              `;
+          } else {
+              gameWon = true;
+              handleAnswer(question, "completed", true);
+          }
+        }
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Platforms
+    currentMap.platforms.forEach(p => {
+      ctx.fillStyle = p.type === "lava" ? "#f00" : "#333";
+      ctx.fillRect(p.x, p.y, p.w, p.h);
+    });
+
+    // Door
+    ctx.fillStyle = currentMap.door.open ? "#0f0" : "#555"; // Green if open, Grey if closed
+    ctx.fillRect(currentMap.door.x, currentMap.door.y, currentMap.door.w, currentMap.door.h);
+    ctx.fillStyle = "#000";
+    ctx.fillRect(currentMap.door.x + 5, currentMap.door.y + 5, currentMap.door.w - 10, currentMap.door.h - 5); // Door frame
+
+    // Item
+    if (!currentMap.item.collected) {
+        ctx.fillStyle = "#FFD700"; // Gold
+        ctx.beginPath();
+        ctx.arc(currentMap.item.x + 10, currentMap.item.y + 10, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#000";
+        ctx.font = "10px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(currentMap.item.label, currentMap.item.x + 10, currentMap.item.y + 14);
+    }
+
+    // Player (Robot)
+    ctx.fillStyle = "#00f";
+    ctx.fillRect(player.x, player.y, player.w, player.h);
+    // Eyes
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(player.x + 4, player.y + 4, 4, 4);
+    ctx.fillRect(player.x + 12, player.y + 4, 4, 4);
+  }
+
+  function loop() {
+    update();
+    draw();
+    if (!gameWon) requestAnimationFrame(loop);
+  }
+
+  loop();
+}
+
+function colCheck(shapeA, shapeB) {
+  // get the vectors to check against
+  const vX = (shapeA.x + (shapeA.w / 2)) - (shapeB.x + (shapeB.w / 2));
+  const vY = (shapeA.y + (shapeA.h / 2)) - (shapeB.y + (shapeB.h / 2));
+  // add the half widths and half heights of the objects
+  const hWidths = (shapeA.w / 2) + (shapeB.w / 2);
+  const hHeights = (shapeA.h / 2) + (shapeB.h / 2);
+  let colDir = null;
+
+  // if the x and y vector are less than the half width or half height, they we must be inside the object, causing a collision
+  if (Math.abs(vX) < hWidths && Math.abs(vY) < hHeights) {
+    const oX = hWidths - Math.abs(vX);
+    const oY = hHeights - Math.abs(vY);
+    if (oX >= oY) {
+      if (vY > 0) {
+        colDir = "t";
+        shapeA.y += oY;
+      } else {
+        colDir = "b";
+        shapeA.y -= oY;
+        shapeA.vy = 0; // Stop falling
+      }
+    } else {
+      if (vX > 0) {
+        colDir = "l";
+        shapeA.x += oX;
+      } else {
+        colDir = "r";
+        shapeA.x -= oX;
+      }
+    }
+  }
+  return colDir;
 }
 
 // --- COMMON HANDLER ---
@@ -563,8 +999,6 @@ function handleAnswer(question, answerValue, isCorrect) {
   }, 1000);
 }
 
-// ...existing code...
-
 function generateCode(percentage, attemptsCount, wpm = 0, accuracy = 0) {
   // Encoded: (Percentage + 17) * 42 + Attempts + (WPM * 100) + Accuracy
   // This creates a larger number but encodes all metrics
@@ -586,7 +1020,15 @@ function renderSummary() {
   const { wpm, accuracy } = state.typingStats || { wpm: 0, accuracy: 0 };
   const code = generateCode(percentage, totalAttempts, wpm, accuracy);
 
-  let reviewHTML = '<div class="review-container" style="margin-top:20px; text-align:left; max-width: 600px; margin-left: auto; margin-right: auto;"><h3>Revisión:</h3>';
+  let reviewHTML = `
+    <details style="margin-top: 20px; border: 2px solid #000; padding: 10px; background: #fff; cursor: pointer; text-align: left;">
+      <summary style="font-weight: bold; font-size: 1.2em; list-style: none; display: flex; justify-content: space-between; align-items: center;">
+        <span>Ver Revisión de Respuestas</span>
+        <span style="font-size: 0.8em;">▼</span>
+      </summary>
+      <div class="review-list" style="margin-top: 15px; border-top: 1px solid #ccc; padding-top: 10px;">
+  `;
+  
   questions.forEach((q, i) => {
       // Find the last attempt for this question (in case of duplicates, though logic prevents it now)
       const attempt = state.attempts.find(a => a.questionId === q.id);
@@ -597,7 +1039,7 @@ function renderSummary() {
       if (typeof answerText === 'object') answerText = JSON.stringify(answerText);
 
       reviewHTML += `
-        <div class="review-item" style="border-bottom:1px solid #000; padding:10px 0;">
+        <div class="review-item" style="border-bottom:1px solid #eee; padding:10px 0;">
             <div style="font-weight:bold;">${i+1}. ${q.prompt}</div>
             <div style="color: ${isCorrect ? 'green' : 'red'}">
                 ${isCorrect ? 'Correcto' : `Incorrecto (Tu respuesta: ${answerText})`}
@@ -605,7 +1047,7 @@ function renderSummary() {
         </div>
       `;
   });
-  reviewHTML += '</div>';
+  reviewHTML += '</div></details>';
 
   appRoot.innerHTML = `
     <h1>¡Actividad completada!</h1>
@@ -621,10 +1063,313 @@ function renderSummary() {
 
     <div class="options">
       <button class="primary" id="restart-btn">Volver a empezar</button>
+      <div style="width: 100%; display: flex; justify-content: center; margin-top: 20px;">
+        <button id="bonus-game-btn" style="background: none; border: none; cursor: pointer; padding: 10px; transition: transform 0.2s;" title="Jugar Bug Blaster">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="8" y="6" width="8" height="14" rx="4"></rect>
+                <path d="m19 7-3 3"></path>
+                <path d="m5 7 3 3"></path>
+                <path d="m19 19-3-3"></path>
+                <path d="m5 19 3-3"></path>
+                <path d="M2 12h6"></path>
+                <path d="M22 12h-6"></path>
+            </svg>
+        </button>
+      </div>
     </div>
   `;
 
   document.getElementById("restart-btn").addEventListener("click", renderIntro);
+  document.getElementById("bonus-game-btn").addEventListener("click", renderBonusGame);
 }
+
+function renderBonusGame() {
+  appRoot.innerHTML = `
+    <h1>Bug Blaster: NEON EDITION</h1>
+    <div class="bonus-game-container">
+      <div class="bonus-game-ui">
+        <span>Puntaje: <span id="bonus-score">0</span></span>
+        <button id="bonus-back-btn" style="padding: 2px 8px; font-size: 12px;">Salir</button>
+      </div>
+      <canvas id="bonus-canvas" width="600" height="400"></canvas>
+    </div>
+    <p>Usa las flechas Izquierda/Derecha para moverte y Espacio para disparar.</p>
+  `;
+
+  document.getElementById("bonus-back-btn").addEventListener("click", renderSummary);
+
+  const canvas = document.getElementById("bonus-canvas");
+  const ctx = canvas.getContext("2d");
+  const scoreEl = document.getElementById("bonus-score");
+
+  let score = 0;
+  let gameOver = false;
+  let player = { x: 280, y: 360, w: 30, h: 30, color: "#0ff" };
+  let bullets = [];
+  let enemies = [];
+  let particles = [];
+  let stars = [];
+  let keys = {};
+  let frame = 0;
+  let shake = 0;
+
+  // Init Stars
+  for(let i=0; i<50; i++) {
+    stars.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      size: Math.random() * 2,
+      speed: 0.5 + Math.random() * 2
+    });
+  }
+
+  const keyHandler = (e) => {
+    if (!document.getElementById("bonus-canvas")) {
+      window.removeEventListener("keydown", keyHandler);
+      window.removeEventListener("keyup", keyUpHandler);
+      return;
+    }
+    keys[e.code] = true;
+  };
+  const keyUpHandler = (e) => keys[e.code] = false;
+
+  window.addEventListener("keydown", keyHandler);
+  window.addEventListener("keyup", keyUpHandler);
+
+  function spawnEnemy() {
+    const x = Math.random() * (canvas.width - 30);
+    // Enemies have different types now
+    const type = Math.random() > 0.8 ? 'fast' : 'normal';
+    enemies.push({ 
+      x, 
+      y: -30, 
+      w: 30, 
+      h: 30, 
+      speed: type === 'fast' ? 4 : 2,
+      type: type,
+      hp: type === 'fast' ? 1 : 2,
+      angle: 0
+    });
+  }
+
+  function createExplosion(x, y, color) {
+    for(let i=0; i<10; i++) {
+      particles.push({
+        x, y,
+        vx: (Math.random() - 0.5) * 10,
+        vy: (Math.random() - 0.5) * 10,
+        life: 1.0,
+        color: color
+      });
+    }
+  }
+
+  function update() {
+    if (gameOver) return;
+    frame++;
+
+    // Screen Shake decay
+    if (shake > 0) shake *= 0.9;
+    if (shake < 0.5) shake = 0;
+
+    // Player Movement
+    if (keys["ArrowLeft"] && player.x > 0) player.x -= 5;
+    if (keys["ArrowRight"] && player.x + player.w < canvas.width) player.x += 5;
+    
+    // Shoot
+    if (keys["Space"] && frame % 8 === 0) {
+      bullets.push({ x: player.x + player.w/2 - 2, y: player.y, w: 4, h: 10, speed: 10 });
+    }
+
+    // Update Stars
+    stars.forEach(s => {
+      s.y += s.speed;
+      if (s.y > canvas.height) {
+        s.y = 0;
+        s.x = Math.random() * canvas.width;
+      }
+    });
+
+    // Update Bullets
+    bullets.forEach((b, i) => {
+      b.y -= b.speed;
+      if (b.y < 0) bullets.splice(i, 1);
+    });
+
+    // Update Particles
+    particles.forEach((p, i) => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life -= 0.05;
+      if (p.life <= 0) particles.splice(i, 1);
+    });
+
+    // Update Enemies
+    if (frame % 50 === 0) spawnEnemy();
+    enemies.forEach((e, i) => {
+      e.y += e.speed;
+      e.angle += 0.1;
+      
+      // Wobble effect
+      e.x += Math.sin(e.angle) * 2;
+
+      // Collision with player
+      if (
+        player.x < e.x + e.w &&
+        player.x + player.w > e.x &&
+        player.y < e.y + e.h &&
+        player.y + player.h > e.y
+      ) {
+        gameOver = true;
+        createExplosion(player.x, player.y, "#0ff");
+        shake = 20;
+        setTimeout(() => {
+            alert("¡Juego terminado! Puntaje: " + score);
+            renderSummary();
+        }, 100);
+      }
+
+      // Collision with bullets
+      bullets.forEach((b, bi) => {
+        if (
+          b.x < e.x + e.w &&
+          b.x + b.w > e.x &&
+          b.y < e.y + e.h &&
+          b.y + b.h > e.y
+        ) {
+          e.hp--;
+          bullets.splice(bi, 1);
+          createExplosion(b.x, b.y, "#ff0");
+          
+          if (e.hp <= 0) {
+            enemies.splice(i, 1);
+            score += e.type === 'fast' ? 20 : 10;
+            scoreEl.textContent = score;
+            shake = 5;
+            createExplosion(e.x, e.y, "#f00");
+          }
+        }
+      });
+
+      if (e.y > canvas.height) {
+        enemies.splice(i, 1); 
+      }
+    });
+
+    draw();
+    requestAnimationFrame(update);
+  }
+
+  function draw() {
+    ctx.save();
+    
+    // Apply Shake
+    if (shake > 0) {
+      const dx = (Math.random() - 0.5) * shake;
+      const dy = (Math.random() - 0.5) * shake;
+      ctx.translate(dx, dy);
+    }
+
+    // Background
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Stars
+    ctx.fillStyle = "#fff";
+    stars.forEach(s => {
+      ctx.globalAlpha = Math.random();
+      ctx.fillRect(s.x, s.y, s.size, s.size);
+    });
+    ctx.globalAlpha = 1.0;
+
+    // Player (Retro Ship)
+    ctx.fillStyle = player.color;
+    ctx.beginPath();
+    ctx.moveTo(player.x + player.w/2, player.y);
+    ctx.lineTo(player.x + player.w, player.y + player.h);
+    ctx.lineTo(player.x + player.w/2, player.y + player.h - 5);
+    ctx.lineTo(player.x, player.y + player.h);
+    ctx.closePath();
+    ctx.fill();
+    // Engine flame
+    if (frame % 4 < 2) {
+        ctx.fillStyle = "#f00";
+        ctx.beginPath();
+        ctx.moveTo(player.x + player.w/2 - 5, player.y + player.h);
+        ctx.lineTo(player.x + player.w/2 + 5, player.y + player.h);
+        ctx.lineTo(player.x + player.w/2, player.y + player.h + 10);
+        ctx.fill();
+    }
+
+    // Bullets (Laser beams)
+    ctx.fillStyle = "#ff0";
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = "#ff0";
+    bullets.forEach(b => ctx.fillRect(b.x, b.y, b.w, b.h));
+    ctx.shadowBlur = 0;
+
+    // Enemies (Glitch Bugs)
+    enemies.forEach(e => {
+      ctx.fillStyle = e.type === 'fast' ? "#ff00ff" : "#ff0000";
+      ctx.save();
+      ctx.translate(e.x + e.w/2, e.y + e.h/2);
+      // ctx.rotate(e.angle); // Spin? Maybe too much
+      
+      // Draw Bug Shape
+      ctx.fillRect(-e.w/2, -e.h/2, e.w, e.h);
+      // Eyes
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(-10, -5, 5, 5);
+      ctx.fillRect(5, -5, 5, 5);
+      // Glitch artifacts
+      if (Math.random() > 0.9) {
+        ctx.fillStyle = "#0f0";
+        ctx.fillRect((Math.random()-0.5)*30, (Math.random()-0.5)*30, 20, 5);
+      }
+      
+      ctx.restore();
+    });
+
+    // Particles
+    particles.forEach(p => {
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = p.life;
+      ctx.fillRect(p.x, p.y, 4, 4);
+    });
+    ctx.globalAlpha = 1.0;
+
+    ctx.restore();
+  }
+
+  update();
+}
+
+// --- DEBUG CHEATS ---
+window.cheats = {
+  next: () => {
+    if (state.currentQuestion < questions.length - 1) {
+      state.currentQuestion++;
+      renderQuestion();
+      console.log(`Skipped to question ${state.currentQuestion + 1}`);
+    } else {
+      renderSummary();
+      console.log("Skipped to summary");
+    }
+  },
+  goto: (index) => {
+    if (index >= 0 && index < questions.length) {
+      state.currentQuestion = index;
+      renderQuestion();
+      console.log(`Jumped to question ${index + 1}`);
+    } else {
+      console.error(`Invalid index. Max: ${questions.length - 1}`);
+    }
+  },
+  end: () => {
+    renderSummary();
+    console.log("Jumped to summary");
+  }
+};
+console.log("Cheats enabled! Use cheats.next(), cheats.goto(i), or cheats.end()");
 
 renderIntro();
