@@ -172,6 +172,7 @@ function renderIntro() {
     <p>${introCopy}</p>
     <div class="options">
       <button class="primary" id="start-btn">Comenzar</button>
+      <button class="secondary" id="learn-btn" onclick="window.location.href='learnbinary/index.html'">Curso de Binario</button>
     </div>
     <small>Usa tu hoja si necesitas hacer notas.</small>
   `;

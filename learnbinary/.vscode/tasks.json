@@ -1,0 +1,14 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "append_function",
+			"type": "shell",
+			"command": "echo \"function getPanelValue(panel, bits) {\n    let val = 0;\n    for(let i=0; i<bits; i++) {\n        const sw = document.getElementById(\\`sw-\\${panel}-\\${i}\\`);\n        if(sw && sw.classList.contains('active')) val += Math.pow(2, i);\n    }\n    return val;\n}\" >> /Users/a/Documents/GitHub/GAMMAC/learnbinary/script.js",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "none"
+		}
+	]
+}

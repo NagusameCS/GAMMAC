@@ -661,3 +661,9 @@ small {
 #bonus-game-btn:hover {
   transform: scale(1.2);
 }
+
+button.secondary {
+  background-color: #fff;
+  font-weight: bold;
+  text-align: center;
+}
